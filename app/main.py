@@ -8,6 +8,14 @@ from .utils import logger
 
 app = FastAPI(title="Quiz Solver Endpoint")
 
+@app.get("/")
+def root():
+    return {"status": "running", "message": "LLM Quiz Solver API online"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 @app.post("/quiz")
 async def receive_quiz(request: Request):
     try:
