@@ -16,8 +16,6 @@ def root():
 def health():
     return {"status": "ok"}
 
-# include your actual logic
-app.include_router(task_router)
 
 @app.post("/quiz")
 async def receive_quiz(request: Request):
