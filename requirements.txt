@@ -11,7 +11,7 @@ matplotlib==3.8.2
 aiofiles==23.1.0
 requests==2.31.0
 lxml==4.9.3
-html5lib
-beautifulsoup4
-bs4
-soupsieve
+html5lib==1.1
+beautifulsoup4==4.12.3
+bs4==0.0.2
+soupsieve==2.5
