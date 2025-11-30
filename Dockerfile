@@ -1,7 +1,7 @@
-# Hugging Face official Python image
+# Base Python image
 FROM python:3.11
 
-# Install OS dependencies required for Playwright on Spaces
+# Install system dependencies required for Chromium
 RUN apt-get update && apt-get install -y \
     libnss3 \
     libnspr4 \
@@ -25,24 +25,27 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Playwright and Browsers
-RUN pip install playwright && \
-    playwright install chromium
+# 🔥 Install Playwright first
+RUN pip install --upgrade pip \
+    && pip install playwright
 
-# Create working directory
+# 🔥 FORCE INSTALL Chromium browser (Render was skipping this step)
+RUN playwright install chromium
+
+# Work directory
 WORKDIR /app
 
-# Copy dependency list
+# Copy requirements
 COPY requirements.txt .
 
-# Install Python requirements
+# Install app dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project code
+# Copy source code
 COPY . .
 
-# Expose HF default port
+# Expose Render port
 EXPOSE 7860
 
-# Start FastAPI
+# Run FastAPI server
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
