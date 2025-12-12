@@ -1,6 +1,7 @@
 import time, logging, httpx
 from contextlib import contextmanager
 import asyncio
+import PyPDF2
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("quiz-solver")
@@ -29,3 +30,15 @@ async def submit_answer(submit_url: str, payload: dict, timeout: int = 20) -> di
         r = await client.post(submit_url, json=payload)
         r.raise_for_status()
         return r.json()
+
+async def extract_pdf_text(file_path: str, page_num: int = None) -> str:
+    """Extract text from PDF, optionally from specific page"""
+    with open(file_path, 'rb') as f:
+        reader = PyPDF2.PdfReader(f)
+        if page_num is not None:
+            # Page numbers in questions are 1-indexed
+            if page_num <= len(reader.pages):
+                return reader.pages[page_num - 1].extract_text()
+            return ""
+        # Extract all pages
+        return "\n".join([page.extract_text() for page in reader.pages])

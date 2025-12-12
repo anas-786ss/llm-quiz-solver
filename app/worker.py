@@ -21,7 +21,11 @@ def normalize_answer(answer):
         # Try number
         try:
             if '.' in answer:
-                return float(answer)
+                f = float(answer)
+                # If it's a whole number, return as int
+                if f.is_integer():
+                    return int(f)
+                return f
             return int(answer)
         except ValueError:
             pass
