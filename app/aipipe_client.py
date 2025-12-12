@@ -33,3 +33,28 @@ async def call_gemini(payload: Dict[str, Any], path: str = "models/gemini-1.5-fl
         r = await client.post(url, headers=HEADERS, json=payload)
         r.raise_for_status()
         return r.json()
+
+async def run_llm(prompt: str, timeout: int = 30) -> str:
+    """Use AiPipe to run LLM inference"""
+    if not AIPIPE_TOKEN:
+        logger.warning("No AIPIPE_TOKEN, returning empty")
+        return ""
+    
+    try:
+        # Try OpenRouter first
+        result = await ask_openai(prompt, model="openai/gpt-4o-mini", timeout=timeout)
+        if result and "output" in result:
+            return result["output"]
+        
+        # Fallback to Gemini
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
+        result = await call_gemini(payload, timeout=timeout)
+        if result and "candidates" in result:
+            return result["candidates"][0]["content"]["parts"][0]["text"]
+        
+        return ""
+    except Exception as e:
+        logger.error(f"LLM call failed: {e}")
+        return ""
