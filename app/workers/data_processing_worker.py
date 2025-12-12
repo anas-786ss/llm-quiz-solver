@@ -3,6 +3,21 @@ import os, tempfile
 from typing import Dict, Any
 from ..utils import logger
 from ..browser.downloader import download_file
+import PyPDF2
+import io
+
+async def extract_pdf_text(file_path: str, page_num: int = None) -> str:
+    """Extract text from PDF, optionally from specific page"""
+    with open(file_path, 'rb') as f:
+        reader = PyPDF2.PdfReader(f)
+        if page_num is not None:
+            # Page numbers in questions are 1-indexed
+            if page_num <= len(reader.pages):
+                return reader.pages[page_num - 1].extract_text()
+            return ""
+        # Extract all pages
+        return "\n".join([page.extract_text() for page in reader.pages])
+
 
 async def handle(page_info: Dict[str, Any], payload: Dict[str, Any], deadline_ts: float) -> Dict[str, Any]:
     """
