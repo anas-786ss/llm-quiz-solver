@@ -14,7 +14,7 @@ if AIPIPE_TOKEN:
 else:
     logger.warning("AIPIPE_TOKEN not set — AiPipe calls will be skipped or mocked.")
 
-async def ask_openai(prompt: str, model: str = "openai/gpt-4.1-nano", timeout: int = 30) -> Optional[Dict[str, Any]]:
+async def ask_openai(prompt: str, model: str = "openai/gpt-4o-mini", timeout: int = 30) -> Optional[Dict[str, Any]]:
     if not AIPIPE_TOKEN:
         logger.warning("Skipping AiPipe call: no token")
         return None
@@ -35,25 +35,34 @@ async def call_gemini(payload: Dict[str, Any], path: str = "models/gemini-1.5-fl
         return r.json()
 
 async def run_llm(prompt: str, timeout: int = 30) -> str:
-    """Use AiPipe to run LLM inference"""
+    """
+    Use AiPipe to run LLM inference; try OpenRouter then fallback to Gemini.
+    Returns a plain string (may be empty on failure).
+    """
     if not AIPIPE_TOKEN:
         logger.warning("No AIPIPE_TOKEN, returning empty")
         return ""
-    
     try:
-        # Try OpenRouter first
+        # Try OpenRouter (OpenAI-compatible)
         result = await ask_openai(prompt, model="openai/gpt-4o-mini", timeout=timeout)
-        if result and "output" in result:
-            return result["output"]
-        
+        # The AiPipe response shape may vary; try common fields
+        if result:
+            # Some versions return { output: "text" }
+            if isinstance(result, dict) and "output" in result and isinstance(result["output"], str):
+                return result["output"].strip()
+            # Others return choices-like structure
+            if "data" in result and isinstance(result["data"], dict):
+                out = result["data"].get("output") or result["data"].get("text")
+                if isinstance(out, str):
+                    return out.strip()
         # Fallback to Gemini
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}]
-        }
-        result = await call_gemini(payload, timeout=timeout)
-        if result and "candidates" in result:
-            return result["candidates"][0]["content"]["parts"][0]["text"]
-        
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        g = await call_gemini(payload, timeout=timeout)
+        if g and "candidates" in g and g["candidates"]:
+            try:
+                return g["candidates"][0]["content"]["parts"][0]["text"].strip()
+            except Exception:
+                pass
         return ""
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
