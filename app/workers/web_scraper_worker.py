@@ -29,7 +29,7 @@ async def handle(page_info: Dict[str, Any], payload: Dict[str, Any], deadline_ts
                 df = pd.read_excel(dest)
             elif file_url.lower().endswith(".pdf"):
                 # PDF -> extract text and fallback to LLM worker
-                pdf_text = await extract_pdf_text(dest)
+                pdf_text = extract_pdf_text(dest)
                 return {"worker": "web_scraper", "note": "PDF file; handing to LLM worker", "pdf_text": pdf_text, "fallback_to": "llm"}
             else:
                 # Other non-tabular files -> fallback to returning instruction to LLM worker

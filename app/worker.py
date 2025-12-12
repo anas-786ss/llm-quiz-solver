@@ -5,7 +5,7 @@ from .task_router import route_task
 from .config import GLOBAL_TIMEOUT, EMAIL
 from typing import Dict, Any
 
-def normalize_answer(answer):
+def normalize_answer(answer: Any) -> Any:
     """Convert answer to appropriate type"""
     if isinstance(answer, (int, float, bool, dict, list)):
         return answer

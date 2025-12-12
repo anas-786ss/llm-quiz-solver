@@ -31,7 +31,7 @@ async def submit_answer(submit_url: str, payload: dict, timeout: int = 20) -> di
         r.raise_for_status()
         return r.json()
 
-async def extract_pdf_text(file_path: str, page_num: int = None) -> str:
+def extract_pdf_text(file_path: str, page_num: int = None) -> str:
     """Extract text from PDF, optionally from specific page"""
     with open(file_path, 'rb') as f:
         reader = PyPDF2.PdfReader(f)

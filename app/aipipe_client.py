@@ -56,5 +56,5 @@ async def run_llm(prompt: str, timeout: int = 30) -> str:
         
         return ""
     except Exception as e:
-        logger.error(f"LLM call failed: {e}")
+        logger.exception("LLM call failed: %s", e)
         return ""

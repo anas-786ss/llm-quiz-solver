@@ -23,11 +23,11 @@ async def handle(page_info: Dict[str, Any], payload: Dict[str, Any], deadline_ts
         await download_file(file_url, dest)
         
         # Check for PDF with page-specific extraction
-        page_match = re.search(r'page\s+(\d+)', instruction)
+        page_match = re.search(r'page\s+(\d+)', instruction, re.IGNORECASE)
         if page_match and file_url.lower().endswith('.pdf'):
             page_num = int(page_match.group(1))
             # Extract from that specific page
-            pdf_text = await extract_pdf_text(dest, page_num=page_num)
+            pdf_text = extract_pdf_text(dest, page_num=page_num)
             return {"worker": "data_processing", "note": f"PDF page {page_num} extracted; handing to LLM worker", "pdf_text": pdf_text, "fallback_to": "llm"}
         
         if file_url.lower().endswith(".csv"):
@@ -36,7 +36,7 @@ async def handle(page_info: Dict[str, Any], payload: Dict[str, Any], deadline_ts
             df = pd.read_excel(dest)
         elif file_url.lower().endswith(".pdf"):
             # PDF without specific page -> extract all and fallback to LLM
-            pdf_text = await extract_pdf_text(dest)
+            pdf_text = extract_pdf_text(dest)
             return {"worker": "data_processing", "note": "PDF file; handing to LLM worker", "pdf_text": pdf_text, "fallback_to": "llm"}
         else:
             return {"worker": "data_processing", "error": "unsupported file type for automatic processing"}
