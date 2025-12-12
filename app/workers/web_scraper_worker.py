@@ -4,6 +4,20 @@ from typing import Dict, Any
 from ..browser.downloader import download_file
 import pandas as pd
 import os, tempfile
+import PyPDF2
+import io
+
+async def extract_pdf_text(file_path: str, page_num: int = None) -> str:
+    """Extract text from PDF, optionally from specific page"""
+    with open(file_path, 'rb') as f:
+        reader = PyPDF2.PdfReader(f)
+        if page_num is not None:
+            # Page numbers in questions are 1-indexed
+            if page_num <= len(reader.pages):
+                return reader.pages[page_num - 1].extract_text()
+            return ""
+        # Extract all pages
+        return "\n".join([page.extract_text() for page in reader.pages])
 
 async def handle(page_info: Dict[str, Any], payload: Dict[str, Any], deadline_ts: float) -> Dict[str, Any]:
     """
@@ -27,8 +41,11 @@ async def handle(page_info: Dict[str, Any], payload: Dict[str, Any], deadline_ts
                 df = pd.read_csv(dest)
             elif file_url.lower().endswith((".xls", ".xlsx")):
                 df = pd.read_excel(dest)
+            elif file_url.lower().endswith(".pdf"):
+                # PDF -> fallback to LLM worker with extracted text
+                return {"worker": "web_scraper", "note": "PDF file; handing to LLM worker", "fallback_to": "llm"}
             else:
-                # PDF / images -> fallback to returning instruction to LLM worker
+                # Other non-tabular files -> fallback to returning instruction to LLM worker
                 return {"worker": "web_scraper", "note": "non-tabular file; handing to LLM worker", "fallback_to": "llm"}
             # simple aggregate: if instruction asks "sum of value column" attempt to find column name
             # naive: look for column named 'value' or 'Value' or numeric columns
