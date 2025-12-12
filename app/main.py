@@ -39,6 +39,3 @@ async def receive_quiz(request: Request):
     asyncio.create_task(orchestrator_start(req.dict()))
     return JSONResponse(status_code=200, content={"status": "accepted", "note": "processing started"})
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
