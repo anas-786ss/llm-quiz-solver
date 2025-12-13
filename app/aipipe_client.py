@@ -31,19 +31,32 @@ async def ask_openai(prompt: str, model: str = "openai/gpt-4o-mini", timeout: in
         logger.error("OpenRouter call failed: %s", e)
         return None
 
+# app/aipipe_client.py — replace _extract_text_from_openai_like with this stronger parser
 def _extract_text_from_openai_like(resp: Dict[str, Any]) -> str:
     if not isinstance(resp, dict):
         return ""
-    # Common shapes
-    out = resp.get("output")
-    if isinstance(out, str) and out.strip():
-        return out.strip()
+    # 1) Direct fields
+    for k in ("output_text", "output", "text", "content"):
+        v = resp.get(k)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    # 2) New AiPipe OpenRouter shape: output is a list of messages with content parts
+    output = resp.get("output")
+    if isinstance(output, list) and output:
+        msg = output[0]
+        # message.content is a list of parts like { type: "output_text", text: "..." }
+        parts = None
+        if isinstance(msg, dict):
+            parts = msg.get("content") or msg.get("parts")
+        if isinstance(parts, list) and parts:
+            for part in parts:
+                if isinstance(part, dict):
+                    txt = part.get("text") or part.get("output_text") or part.get("content")
+                    if isinstance(txt, str) and txt.strip():
+                        return txt.strip()
+    # 3) Fallback: try nested data.choices/message.content
     data = resp.get("data")
     if isinstance(data, dict):
-        for k in ("output", "text", "content"):
-            v = data.get(k)
-            if isinstance(v, str) and v.strip():
-                return v.strip()
         choices = data.get("choices") or data.get("outputs")
         if isinstance(choices, list) and choices:
             c0 = choices[0]
@@ -56,6 +69,7 @@ def _extract_text_from_openai_like(resp: Dict[str, Any]) -> str:
                     v = c0.get(k)
                     if isinstance(v, str) and v.strip():
                         return v.strip()
+    # 4) Top-level choices
     choices = resp.get("choices")
     if isinstance(choices, list) and choices:
         c0 = choices[0]
@@ -68,10 +82,6 @@ def _extract_text_from_openai_like(resp: Dict[str, Any]) -> str:
                 v = c0.get(k)
                 if isinstance(v, str) and v.strip():
                     return v.strip()
-    for k in ("text", "content"):
-        v = resp.get(k)
-        if isinstance(v, str) and v.strip():
-            return v.strip()
     return ""
 
 async def run_llm(prompt: str, timeout: int = 30) -> str:
